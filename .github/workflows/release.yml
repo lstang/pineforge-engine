@@ -196,7 +196,9 @@ jobs:
           - triple: macos-universal
             runner: macos-latest
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
-    runs-on: ${{ matrix.runner }}
+          - triple: windows-x86_64
+            runner: windows-latest
+            cmake_extra: ""
 
     steps:
       - name: Checkout tag
