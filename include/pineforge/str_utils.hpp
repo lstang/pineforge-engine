@@ -1,7 +1,7 @@
 #pragma once
+#include <pineforge/portability.hpp>
 #include <string>
 #include <vector>
-
 namespace pineforge {
 
 std::string pine_str_format(const std::string& fmt,

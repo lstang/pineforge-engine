@@ -18,6 +18,7 @@
 function(pineforge_tutorial_strategy target src out_dir out_name)
     add_library(${target} SHARED ${src})
     target_link_libraries(${target} PRIVATE pineforge)
+    target_compile_definitions(${target} PRIVATE PINEFORGE_BUILD_SHARED)
 
     # Force-load libpineforge so the c_abi.cpp symbols (pf_version_get,
     # strategy_set_trace_enabled) — which the strategy body never
@@ -30,6 +31,9 @@ function(pineforge_tutorial_strategy target src out_dir out_name)
             "-Wl,--whole-archive"
             "$<TARGET_FILE:pineforge>"
             "-Wl,--no-whole-archive")
+    elseif(WIN32)
+        target_link_options(${target} PRIVATE
+            "-Wl,/WHOLEARCHIVE:$<TARGET_FILE:pineforge>")
     endif()
 
     # Suppress a few warnings the strategy translation unit cannot fix.
@@ -42,6 +46,7 @@ function(pineforge_tutorial_strategy target src out_dir out_name)
     # Place the .so next to its source so the Python harnesses find it
     # at their hard-coded path.
     set_target_properties(${target} PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
         LIBRARY_OUTPUT_DIRECTORY ${out_dir}
         RUNTIME_OUTPUT_DIRECTORY ${out_dir}
         OUTPUT_NAME ${out_name}

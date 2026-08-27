@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <sstream>
-
+#include <unordered_map>
 namespace pineforge {
 namespace pine_tz {
 namespace {
@@ -27,12 +27,19 @@ bool all_digits(const std::string& s) {
 
 }  // namespace
 
-std::string normalize_timezone_for_posix(const std::string& tz) {
-    if (tz.empty() || tz == "UTC" || tz == "Etc/UTC" || tz == "GMT" ||
-        tz == "Etc/GMT") {
+std::string normalize_timezone_for_posix(const std::string& input_tz) {
+    if (input_tz.empty() || input_tz == "UTC" || input_tz == "Etc/UTC" || input_tz == "GMT" ||
+        input_tz == "Etc/GMT") {
         return "UTC";
     }
 
+#if defined(_WIN32)
+    const char* win_norm = portable_win32_normalize_tz(input_tz.c_str());
+    if (win_norm != input_tz.c_str()) {
+        return std::string(win_norm);
+    }
+#endif
+    std::string tz = input_tz;
     std::size_t prefix = std::string::npos;
     if (tz.rfind("GMT", 0) == 0) {
         prefix = 3;

@@ -115,9 +115,9 @@ target_compile_options(pineforge PRIVATE
     # / inlined-away locals). The FP flags below stay unconditional because
     # parity depends on them in every build type.
     $<$<NOT:$<CONFIG:Debug>>:-O2>
-    -fPIC
-    -fvisibility=hidden
-    -fvisibility-inlines-hidden
+    $<$<NOT:$<PLATFORM_ID:Windows>>:-fPIC>
+    $<$<NOT:$<PLATFORM_ID:Windows>>:-fvisibility=hidden>
+    $<$<NOT:$<PLATFORM_ID:Windows>>:-fvisibility-inlines-hidden>
     -Wall
     -Wextra
     -Wpedantic
@@ -145,8 +145,8 @@ target_include_directories(pineforge
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-
 target_link_libraries(pineforge PUBLIC Eigen3::Eigen)
+target_compile_definitions(pineforge PUBLIC $<$<PLATFORM_ID:Windows>:_USE_MATH_DEFINES>)
 
 # === Coverage instrumentation (opt-in) =================================
 # Build with:

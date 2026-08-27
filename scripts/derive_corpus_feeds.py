@@ -28,6 +28,7 @@ Import ensure_derived() or run as a script.
 import math
 import os
 import tempfile
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -154,7 +155,14 @@ def _write_atomic(path: Path, text: str) -> None:
         with os.fdopen(fd, "w") as fh:
             fh.write(text)
         os.chmod(tmp, path.stat().st_mode & 0o777 if path.exists() else 0o644)
-        tmp.replace(path)
+        for attempt in range(10):
+            try:
+                tmp.replace(path)
+                break
+            except PermissionError:
+                if attempt == 9 or os.name != "nt":
+                    raise
+                time.sleep(0.01 * (attempt + 1))
     finally:
         try:
             tmp.unlink()

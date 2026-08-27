@@ -6,9 +6,9 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
-
 
 RUN_CORPUS = Path(__file__).with_name("run_corpus.sh")
 
@@ -27,14 +27,20 @@ def fixture(*, generated: bool, library: bool) -> tuple[Path, Path]:
     if library:
         (strategy / "strategy.so").write_bytes(b"fixture")
 
-    fake_python = scripts / "fake_python.py"
-    fake_python.write_text(
-        "#!/usr/bin/env python3\n"
+    fake_py = scripts / "fake_python.py"
+    fake_py.write_text(
         "import os, sys\n"
         "if len(sys.argv) > 1 and sys.argv[1].endswith('run_strategy.py') "
         "and os.environ.get('PF_FAKE_RUN_FAIL') == '1':\n"
         "    print('synthetic runner failure', file=sys.stderr)\n"
         "    raise SystemExit(42)\n"
+    )
+    fake_python = scripts / "fake_python"
+    py_exec = Path(sys.executable).as_posix()
+    fake_py_posix = fake_py.as_posix()
+    fake_python.write_text(
+        f"#!/bin/sh\n"
+        f'exec "{py_exec}" "{fake_py_posix}" "$@"\n'
     )
     fake_python.chmod(0o755)
     return root, fake_python
@@ -43,13 +49,17 @@ def fixture(*, generated: bool, library: bool) -> tuple[Path, Path]:
 def run_case(root: Path, fake_python: Path, **extra_env: str) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     env.update({
-        "PYTHON": str(fake_python),
+        "PYTHON": fake_python.as_posix(),
         "SKIP_BUILD": "1",
         "SKIP_VERIFY": "1",
         **extra_env,
     })
+    cmd = [str(root / "scripts" / "run_corpus.sh")]
+    if os.name == "nt":
+        bash = r"C:\Program Files\Git\bin\bash.exe" if os.path.exists(r"C:\Program Files\Git\bin\bash.exe") else (shutil.which("bash") or "bash")
+        cmd = [bash, str(root / "scripts" / "run_corpus.sh")]
     return subprocess.run(
-        [str(root / "scripts" / "run_corpus.sh")],
+        cmd,
         cwd=root,
         env=env,
         text=True,
@@ -57,7 +67,6 @@ def run_case(root: Path, fake_python: Path, **extra_env: str) -> subprocess.Comp
         stderr=subprocess.STDOUT,
         check=False,
     )
-
 
 def check_failure(result: subprocess.CompletedProcess, expected: str) -> None:
     assert result.returncode != 0, result.stdout

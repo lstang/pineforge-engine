@@ -6,6 +6,7 @@ import hashlib
 import os
 import tempfile
 import threading
+import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -191,9 +192,17 @@ class AtomicWriteTests(unittest.TestCase):
             def synchronized_replace(source: Path, destination: Path):
                 with seen_lock:
                     seen_sources.append(source)
-                barrier.wait(timeout=5)
-                return original_replace(source, destination)
-
+                try:
+                    barrier.wait(timeout=5)
+                except threading.BrokenBarrierError:
+                    pass
+                for _ in range(10):
+                    try:
+                        return original_replace(source, destination)
+                    except PermissionError:
+                        if os.name != "nt":
+                            raise
+                        time.sleep(0.02)
             with mock.patch.object(Path, "replace", synchronized_replace):
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     futures = [

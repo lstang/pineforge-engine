@@ -54,16 +54,18 @@
 /* ── Visibility ──────────────────────────────────────────────────── */
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-  #if defined(PINEFORGE_BUILD_SHARED)
-    #define PF_API __declspec(dllexport)
-  #else
+  #if defined(PINEFORGE_SHARED_LIB)
     #define PF_API __declspec(dllimport)
+  #else
+    #define PF_API __declspec(dllexport)
   #endif
 #elif defined(__GNUC__) || defined(__clang__)
   #define PF_API __attribute__((visibility("default")))
 #else
   #define PF_API
 #endif
+
+#include <pineforge/portability.hpp>
 
 /** Monotonic ABI version of pf_report_t / pf_trade_t layout. Bumped
  *  whenever a caller-visible struct grows. Consumers MUST verify
